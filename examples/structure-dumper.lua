@@ -4,6 +4,9 @@
 -- Instance yang dibutuhin (NPC, checkpoint, ATM, consumable, dll) tanpa
 -- klik manual satu-satu di Explorer bawaan executor.
 --
+-- Hasil dump otomatis: (1) disimpan ke file, (2) di-copy ke clipboard,
+-- (3) di-print ke console. Tinggal Ctrl+V buat langsung paste ke mana aja.
+--
 -- Ganti URL di baris ini dulu sebelum pakai (sama kayak AzayaUI.lua):
 local AzayaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/azayatao/azayaUI/main/AzayaUI.lua"))()
 
@@ -12,6 +15,7 @@ local AzayaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/azaya
 --------------------------------------------------
 
 local v1 = game:GetService("HttpService")
+local lastDumpContent = ""
 
 local function p1(p2) -- classifyInstance(instance) -> tag string kalau "menarik"
 	if p2:IsA("BillboardGui") then return "[BEAM/CHECKPOINT?]" end
@@ -75,10 +79,12 @@ local function p10(p11) -- searchByName(nameSubstring) -> list hasil
 end
 
 --------------------------------------------------
--- SAVE HELPER
+-- SAVE + CLIPBOARD + CONSOLE HELPER
 --------------------------------------------------
 
 local function p13(p14, p15) -- saveDump(filename, content)
+	lastDumpContent = p15
+
 	if not isfolder("AzayaUI/Dumps") then
 		makefolder("AzayaUI/Dumps")
 	end
@@ -87,7 +93,13 @@ local function p13(p14, p15) -- saveDump(filename, content)
 		writefile("AzayaUI/Dumps/" .. p14 .. ".txt", p15)
 	end)
 
-	return v12, v13
+	local v14 = pcall(function()
+		setclipboard(p15)
+	end)
+
+	print(p15)
+
+	return v12, v13, v14
 end
 
 --------------------------------------------------
@@ -102,102 +114,113 @@ local Window = AzayaUI.new({
 local MainTab = Window:CreateTab("Dumper")
 local QuickSection = MainTab:CreateSection("Quick Dump")
 
-QuickSection:AddLabel("Dump seluruh Workspace (bisa berat kalau map gede)")
+QuickSection:AddLabel("Hasil: file + clipboard + console (tinggal Ctrl+V)")
 QuickSection:AddButton("Dump workspace", function()
-	local v14 = p8(workspace)
-	local v15, v16 = p13("workspace_full", v14)
+	local v16 = p8(workspace)
+	local v17, v18, v19 = p13("workspace_full", v16)
 
-	if v15 then
-		Window:Notify("Dumper", "Saved to AzayaUI/Dumps/workspace_full.txt", 4)
+	if v17 then
+		Window:Notify("Dumper", (v19 and "Saved + copied to clipboard!" or "Saved to file (clipboard gagal)"), 4)
 	else
-		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v16), 4)
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v18), 4)
 	end
 end)
 
 QuickSection:AddButton("Dump PlayerGui (buat cari GUI currency/stats)", function()
-	local v17 = game:GetService("Players").LocalPlayer.PlayerGui
-	local v18 = p8(v17)
-	local v19, v20 = p13("playergui_full", v18)
+	local v20 = game:GetService("Players").LocalPlayer.PlayerGui
+	local v21 = p8(v20)
+	local v22, v23, v24 = p13("playergui_full", v21)
 
-	if v19 then
-		Window:Notify("Dumper", "Saved to AzayaUI/Dumps/playergui_full.txt", 4)
+	if v22 then
+		Window:Notify("Dumper", (v24 and "Saved + copied to clipboard!" or "Saved to file (clipboard gagal)"), 4)
 	else
-		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v20), 4)
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v23), 4)
 	end
 end)
 
 QuickSection:AddButton("Dump ReplicatedStorage (buat cari RemoteEvent)", function()
-	local v21 = game:GetService("ReplicatedStorage")
-	local v22 = p8(v21)
-	local v23, v24 = p13("replicatedstorage_full", v22)
+	local v25 = game:GetService("ReplicatedStorage")
+	local v26 = p8(v25)
+	local v27, v28, v29 = p13("replicatedstorage_full", v26)
 
-	if v23 then
-		Window:Notify("Dumper", "Saved to AzayaUI/Dumps/replicatedstorage_full.txt", 4)
+	if v27 then
+		Window:Notify("Dumper", (v29 and "Saved + copied to clipboard!" or "Saved to file (clipboard gagal)"), 4)
 	else
-		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v24), 4)
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v28), 4)
 	end
+end)
+
+QuickSection:AddButton("Copy Last Dump Lagi", function()
+	if lastDumpContent == "" then
+		Window:Notify("Dumper", "Belum ada dump yang dijalanin", 3)
+		return
+	end
+
+	local v30 = pcall(function()
+		setclipboard(lastDumpContent)
+	end)
+
+	Window:Notify("Dumper", (v30 and "Copied!" or "Gagal copy ke clipboard"), 3)
 end)
 
 local SearchSection = MainTab:CreateSection("Search by Name")
 SearchSection:AddLabel("Contoh: ketik 'saitama', 'roadwork', 'atm', 'muscle' dll")
 
-local v25 = ""
+local v31 = ""
 SearchSection:AddTextbox("Kata kunci", {
 	Placeholder = "misal: saitama",
 	Callback = function(p16)
-		v25 = p16
+		v31 = p16
 	end,
 })
 
 SearchSection:AddButton("Cari & simpan hasil", function()
-	if v25 == "" then
+	if v31 == "" then
 		Window:Notify("Dumper", "Isi kata kunci dulu", 3)
 		return
 	end
 
-	local v26 = p10(v25)
-	local v27 = "=== SEARCH: \"" .. v25 .. "\" ===\nHasil: " .. #v26 .. "\n\n" .. table.concat(v26, "\n")
+	local v32 = p10(v31)
+	local v33 = "=== SEARCH: \"" .. v31 .. "\" ===\nHasil: " .. #v32 .. "\n\n" .. table.concat(v32, "\n")
 
-	local v28, v29 = p13("search_" .. v25:gsub("%s+", "_"), v27)
+	local v34, v35, v36 = p13("search_" .. v31:gsub("%s+", "_"), v33)
 
-	if v28 then
-		Window:Notify("Dumper", #v26 .. " hasil ditemukan, tersimpan ke file", 4)
+	if v34 then
+		Window:Notify("Dumper", #v32 .. " hasil" .. (v36 and " (copied!)" or ""), 4)
 	else
-		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v29), 4)
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v35), 4)
 	end
-
-	print(v27) -- juga print ke console biar bisa langsung diliat
 end)
 
 local ManualSection = MainTab:CreateSection("Manual Path Dump")
 
-local v30 = "workspace"
+local v37 = "workspace"
 ManualSection:AddLabel("Ketik path Lua, misal: workspace.Ignore.Interactables")
 ManualSection:AddTextbox("Path", {
 	Placeholder = "workspace.NamaFolder",
 	Default = "workspace",
 	Callback = function(p17)
-		v30 = p17
+		v37 = p17
 	end,
 })
 
 ManualSection:AddButton("Dump path ini", function()
-	local v31, v32 = pcall(function()
-		return loadstring("return " .. v30)()
+	local v38, v39 = pcall(function()
+		return loadstring("return " .. v37)()
 	end)
 
-	if not v31 or not v32 or typeof(v32) ~= "Instance" then
+	if not v38 or not v39 or typeof(v39) ~= "Instance" then
 		Window:Notify("Dumper", "Path gak valid atau bukan Instance", 4)
 		return
 	end
 
-	local v33 = p8(v32)
-	local v34, v35 = p13("manual_" .. v32.Name, v33)
+	local v40 = p8(v39)
+	local v41, v42, v43 = p13("manual_" .. v39.Name, v40)
 
-	if v34 then
-		Window:Notify("Dumper", "Saved to AzayaUI/Dumps/manual_" .. v32.Name .. ".txt", 4)
+	if v41 then
+		Window:Notify("Dumper", (v43 and "Saved + copied to clipboard!" or "Saved to file (clipboard gagal)"), 4)
 	else
-		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v35), 4)
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v42), 4)
 	end
 end)
 
