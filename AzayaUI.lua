@@ -26,8 +26,8 @@ local v7 = v6:WaitForChild("PlayerGui")
 local COLOR_BG = Color3.fromRGB(18, 15, 18)
 local COLOR_PANEL = Color3.fromRGB(28, 24, 28)
 local COLOR_BORDER = Color3.fromRGB(8, 6, 8)
-local COLOR_YELLOW = Color3.fromRGB(255, 205, 60)
-local COLOR_RED = Color3.fromRGB(214, 60, 45)
+local COLOR_YELLOW = Color3.fromRGB(230, 45, 40) -- primary accent (kept variable name for compatibility, now red per request)
+local COLOR_RED = Color3.fromRGB(150, 25, 25) -- darker red, used for danger/close elements
 local COLOR_TEXT = Color3.fromRGB(240, 240, 240)
 local COLOR_DIM = Color3.fromRGB(150, 145, 150)
 local COLOR_GREEN = Color3.fromRGB(90, 200, 110)
@@ -35,7 +35,7 @@ local COLOR_GREEN = Color3.fromRGB(90, 200, 110)
 local PIXEL_FONT
 do
 	local v8, v9 = pcall(function()
-		return Enum.Font.PressStart2P
+		return Font.new("rbxasset://fonts/families/PressStart2P.json")
 	end)
 	PIXEL_FONT = (v8 and v9) or Enum.Font.Code
 end
@@ -47,7 +47,11 @@ end
 local function p1(p2, p3, p4, p5, p6) -- makeInstance(className, props, parent, size, position)
 	local v10 = Instance.new(p2)
 	for v11, v12 in pairs(p3 or {}) do
-		v10[v11] = v12
+		if v11 == "Font" and typeof(v12) == "Font" then
+			v10.FontFace = v12 -- custom Font.new() object needs FontFace, not the legacy .Font property
+		else
+			v10[v11] = v12
+		end
 	end
 	if p5 then v10.Size = p5 end
 	if p6 then v10.Position = p6 end
@@ -64,7 +68,8 @@ local function p7(p8) -- addPixelBorder(frame) - thick black outline, no roundin
 	return v13
 end
 
-local function p9(p10) -- makeDraggable(frame) - works with mouse AND touch
+local function p9(p10, p10x) -- makeDraggable(dragHandle, targetFrame) - targetFrame default = dragHandle
+	p10x = p10x or p10
 	local v14 = false
 	local v15, v16, v17
 
@@ -72,7 +77,7 @@ local function p9(p10) -- makeDraggable(frame) - works with mouse AND touch
 		if p11.UserInputType == Enum.UserInputType.MouseButton1 or p11.UserInputType == Enum.UserInputType.Touch then
 			v14 = true
 			v16 = p11.Position
-			v17 = p10.Position
+			v17 = p10x.Position
 
 			p11.Changed:Connect(function()
 				if p11.UserInputState == Enum.UserInputState.End then
@@ -91,7 +96,7 @@ local function p9(p10) -- makeDraggable(frame) - works with mouse AND touch
 	v2.InputChanged:Connect(function(p13)
 		if p13 == v15 and v14 then
 			local v18 = p13.Position - v16
-			p10.Position = UDim2.new(v17.X.Scale, v17.X.Offset + v18.X, v17.Y.Scale, v17.Y.Offset + v18.Y)
+			p10x.Position = UDim2.new(v17.X.Scale, v17.X.Offset + v18.X, v17.Y.Scale, v17.Y.Offset + v18.Y)
 		end
 	end)
 end
@@ -252,7 +257,7 @@ function AzayaUI.new(p20)
 		BorderSizePixel = 0,
 	}, v32, UDim2.new(1, 0, 0, 34), UDim2.new(0, 0, 0, 0))
 	p7(v33)
-	p9(v33)
+	p9(v33, v32)
 
 	p1("TextLabel", {
 		Text = v29.Title,
