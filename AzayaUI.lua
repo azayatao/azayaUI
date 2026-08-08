@@ -35,7 +35,7 @@ local COLOR_GREEN = Color3.fromRGB(90, 200, 110)
 local PIXEL_FONT
 do
 	local v8, v9 = pcall(function()
-		return Font.new("rbxasset://fonts/families/PressStart2P.json")
+		return Enum.Font.PressStart2P
 	end)
 	PIXEL_FONT = (v8 and v9) or Enum.Font.Code
 end
