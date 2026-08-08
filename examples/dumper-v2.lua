@@ -33,14 +33,36 @@ local function p1(p2) -- classifyInstance(instance) -> tag string kalau "menarik
 	return ""
 end
 
-local function p3(p4, p5, p6, p7) -- dumpRecursive(instance, path, lines, maxDepth)
-	p7 = p7 or 6
-	if #p6 > 8000 then return end -- safety cap biar file gak kegedean
+local yieldCounter = 0
 
-	for _, v4 in ipairs(p4:GetChildren()) do
+local function p3(p4, p5, p6, p7) -- dumpRecursive(instance, path, lines, maxDepth)
+	p7 = p7 or 3
+	if #p6 > 2000 then return end -- safety cap biar gak kegedean & gak berat
+
+	local v20 = p4:GetChildren()
+
+	-- Folder dekorasi/gede biasanya gak relevan buat kita, dan bikin proses berat.
+	-- Kalau anaknya kebanyakan, cuma dicatet jumlahnya doang, gak diselam lebih dalam.
+	if #v20 > 300 then
+		table.insert(p6, p5 .. "  [SKIPPED: " .. #v20 .. " children, kebanyakan buat di-dump detail]")
+		return
+	end
+
+	for _, v4 in ipairs(v20) do
 		local v5 = p5 .. "." .. v4.Name
 		local v6 = p1(v4)
 		table.insert(p6, v5 .. "  (" .. v4.ClassName .. ")  " .. v6)
+
+		yieldCounter = yieldCounter + 1
+		if yieldCounter >= 150 then
+			yieldCounter = 0
+			task.wait() -- kasih nafas ke engine, biar gak freeze/crash pas workspace gede
+		end
+
+		if #p6 > 2000 then
+			table.insert(p6, "... [TRUNCATED, lebih dari 2000 baris]")
+			return
+		end
 
 		if p7 > 0 then
 			p3(v4, v5, p6, p7 - 1)
@@ -54,7 +76,7 @@ local function p8(p9) -- dumpFrom(rootInstance) -> string hasil dump lengkap
 	table.insert(v7, "Generated: " .. os.date())
 	table.insert(v7, "")
 
-	p3(p9, p9.Name, v7, 6)
+	p3(p9, p9.Name, v7, 3)
 
 	return table.concat(v7, "\n")
 end
@@ -115,7 +137,26 @@ local MainTab = Window:CreateTab("Dumper")
 local QuickSection = MainTab:CreateSection("Quick Dump")
 
 QuickSection:AddLabel("Hasil: file + clipboard + console (tinggal Ctrl+V)")
-QuickSection:AddButton("Dump workspace", function()
+QuickSection:AddLabel("Coba 'Dump Ringan' dulu kalau map-nya berat/gede")
+
+QuickSection:AddButton("Dump Ringan (depth 1, paling aman)", function()
+	local v14 = {}
+	table.insert(v14, "=== DUMP RINGAN: workspace (depth 1) ===")
+	table.insert(v14, "Generated: " .. os.date())
+	table.insert(v14, "")
+	p3(workspace, "workspace", v14, 1)
+	local v15 = table.concat(v14, "\n")
+
+	local v17, v18, v19 = p13("workspace_shallow", v15)
+
+	if v17 then
+		Window:Notify("Dumper", (v19 and "Saved + copied to clipboard!" or "Saved to file (clipboard gagal)"), 4)
+	else
+		Window:Notify("Dumper", "Gagal simpan: " .. tostring(v18), 4)
+	end
+end)
+
+QuickSection:AddButton("Dump workspace (depth 3, lebih berat)", function()
 	local v16 = p8(workspace)
 	local v17, v18, v19 = p13("workspace_full", v16)
 
